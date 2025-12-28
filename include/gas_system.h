@@ -10,9 +10,12 @@
 class GasSystem {
     public:
         struct Mix {
-            double p_fuel = 0.0;
-            double p_inert = 1.0;
-            double p_o2 = 0.0;
+            double p_fuel;
+            double p_inert;
+            double p_o2;
+
+            constexpr Mix(double fuel = 0.0, double inert = 1.0, double o2 = 0.0)
+            : p_fuel(fuel), p_inert(inert), p_o2(o2) {}
         };
 
         struct State {
@@ -37,7 +40,7 @@ class GasSystem {
         ~GasSystem() { /* void */ }
 
         void setGeometry(double width, double height, double dx, double dy);
-        void initialize(double P, double V, double T, const Mix &mix = {}, int degreesOfFreedom = 5);
+        void initialize(double P, double V, double T, const Mix &mix = Mix(), int degreesOfFreedom = 5);
         void reset(double P, double T, const Mix &mix = {});
 
         void setVolume(double V);
