@@ -1,8 +1,6 @@
-// #include "../include/engine_sim_application.h"
-// #include "../include/vehicle.h"
-// #include "../include/engine.h"
 #include "../include/transmission.h"
 #include "../scripting/include/compiler.h"
+#include "../include/s_audio_file.h"
 
 #include <iostream>
 
@@ -30,67 +28,58 @@ int main() {
 
     std::cout << engine->getName() << std::endl; 
 
-    // Engine::Parameters engineParams;
-    // engineParams.cylinderBanks = 1; 
-    // engineParams.cylinderCount = 1; 
-    // engineParams.crankshaftCount = 1; 
-    // engineParams.exhaustSystemCount = 1; 
-    // engineParams.intakeCount = 1; 
-    // engineParams.name = "new engine"; 
-    // engineParams.throttle = nullptr; 
-    // engineParams.initialSimulationFrequency = 0; 
-    // engineParams.initialHighFrequencyGain = 0; 
-    // engineParams.initialNoise = 0; 
-    // engineParams.initialJitter = 0; 
-    // engine->initialize(engineParams); 
-
-    // Vehicle::Parameters vehParams;
-    // vehParams.mass = units::mass(1597, units::kg);
-    // vehParams.diffRatio = 3.42;
-    // vehParams.tireRadius = units::distance(10, units::inch);
-    // vehParams.dragCoefficient = 0.25;
-    // vehParams.crossSectionArea = units::distance(6.0, units::foot) * units::distance(6.0, units::foot);
-    // vehParams.rollingResistance = 2000.0;
-    // vehicle = new Vehicle;
-    // vehicle->initialize(vehParams);
-
-    // const double gearRatios[] = { 2.97, 2.07, 1.43, 1.00, 0.84, 0.56 };
-    // Transmission::Parameters tParams;
-    // tParams.GearCount = 6;
-    // tParams.GearRatios = gearRatios;
-    // tParams.MaxClutchTorque = units::torque(1000.0, units::ft_lb);
-    // transmission = new Transmission;
-    // transmission->initialize(tParams);
+    ImpulseResponse *response = engine->getExhaustSystem(0)->getImpulseResponse();
+    std::cout << response->getFilename() << std::endl; 
 
     Simulator* sim = engine->createSimulator(vehicle, transmission); 
     sim->getEngine()->getIgnitionModule()->m_enabled = true; 
-    // engine->setSpeedControl(0.1); 
+    engine->setSpeedControl(0.04); 
     sim->setSimulationSpeed(1.0); 
     sim->m_starterMotor.m_enabled = true;
 
+    engine->calculateDisplacement();
+    sim->setSimulationFrequency(engine->getSimulationFrequency());
+
+    // Synthesizer::AudioParameters audioParams = sim->synthesizer().getAudioParameters();
+    // audioParams.inputSampleNoise = static_cast<float>(engine->getInitialJitter());
+    // audioParams.airNoise = static_cast<float>(engine->getInitialNoise());
+    // audioParams.dF_F_mix = static_cast<float>(engine->getInitialHighFrequencyGain());
+    // sim->synthesizer().setAudioParameters(audioParams);
+
+    // for (int i = 0; i < engine->getExhaustSystemCount(); ++i) {
+    //     ImpulseResponse *response = engine->getExhaustSystem(i)->getImpulseResponse();
+
+    //     sAudioFile waveFile;
+    //     waveFile.OpenFile(response->getFilename().c_str());
+    //     waveFile.InitializeInternalBuffer(waveFile.GetSampleCount());
+    //     waveFile.FillBuffer(0);
+    //     waveFile.CloseFile();
+
+    //     sim->synthesizer().initializeImpulseResponse(
+    //         reinterpret_cast<const int16_t *>(waveFile.GetBuffer()),
+    //         waveFile.GetSampleCount(),
+    //         response->getVolume(),
+    //         i
+    //     );
+
+    //     waveFile.DestroyInternalBuffer();
+    // }
+    // sim->startAudioRenderingThread();
+
     size_t cnt = 0; 
+    size_t iteration = 0; 
 
     while(1) {
-        std::cout << engine->getRpm() << std::endl; 
+        double rpm = engine->getRpm();
+        std::cout << "\rITERATION: " << iteration << " RPM: " << rpm << "    " << std::flush;
 
-        sim->startFrame(1 / 30);
-
-        if(engine->getRpm() > 363)
-            cnt++; 
-        
-        if(cnt > 10000) {
-            sim->m_starterMotor.m_enabled = false; 
-            // std::cout << "starter off" << std::endl; 
-        }
-
-        // if(cnt > 999999) {
-        //     engine->getIgnitionModule()->m_enabled = false; 
-        // }
+        sim->startFrame(1.0 / 120.0);
 
         const int iterationCount = sim->getFrameIterationCount();
         while (sim->simulateStep()) { }
 
         sim->endFrame(); 
+        iteration++; 
     }
 
     std::cout << "made sim" << std::endl; 
